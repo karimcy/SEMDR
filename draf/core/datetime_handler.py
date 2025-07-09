@@ -14,7 +14,7 @@ class DateTimeHandler(ABC):
     @property
     def step_width(self) -> float:
         """Returns the step width of the current datetimeindex.
-        e.g. 0.25 for a frequency of 15min."""
+        e.g. 0.25 for a frequency of 15min, 0.083 for 5min."""
         return hp.get_step_width(self.freq)
 
     @property
@@ -35,12 +35,24 @@ class DateTimeHandler(ABC):
 
     @property
     def freq_unit(self):
-        if self.freq == "15min":
+        """Return human-readable frequency unit including minute-level support"""
+        if self.freq == "1min":
+            return "min"
+        elif self.freq == "5min":
+            return "5 min"
+        elif self.freq == "15min":
             return "1/4 h"
         elif self.freq == "30min":
             return "1/2 h"
         elif self.freq == "60min":
             return "h"
+        else:
+            return self.freq  # Fallback for any other frequency
+
+    @property 
+    def is_high_resolution(self) -> bool:
+        """Check if using high-resolution (sub-hourly) time steps"""
+        return self.freq in ["1min", "5min", "15min", "30min"]
 
     def match_dtindex(
         self, data: Union[pd.DataFrame, pd.Series], resample: bool = False
@@ -55,13 +67,19 @@ class DateTimeHandler(ABC):
         )
 
     def _set_dtindex(self, year: int, freq: str) -> None:
+        # Validate year
         assert year in range(1980, 2100)
+        
+        # Validate frequency including minute-level support
+        valid_freqs = ["1min", "5min", "15min", "30min", "60min"]
+        assert freq in valid_freqs, f"Frequency must be one of {valid_freqs}, got {freq}"
+        
         self.year = year
         self.freq = freq
         self.dtindex = hp.make_datetimeindex(year=year, freq=freq)
         self.dtindex_custom = self.dtindex
         self._t1 = 0
-        self._t2 = self.dtindex.size - 1  # =8759 for a normal year
+        self._t2 = self.dtindex.size - 1
 
     def _get_int_loc_from_dtstring(self, s: str) -> int:
         return self.dtindex.get_loc(f"{self.year}-{s}")
@@ -103,6 +121,20 @@ class DateTimeHandler(ABC):
         start_int = None if start is None else self._get_first_int_loc_from_dtstring(start)
         stop_int = None if stop is None else self._get_last_int_loc_from_dtstring(stop)
         return slice(start_int, stop_int)
+
+    def set_rolling_horizon(self, horizon_hours: int = 24) -> None:
+        """Set a rolling horizon for real-time optimization.
+        
+        Args:
+            horizon_hours: Number of hours to optimize ahead
+        """
+        steps_ahead = int(horizon_hours * 60 / hp.int_from_freq(self.freq))
+        if steps_ahead > self.dtindex.size:
+            logger.warning(f"Horizon {horizon_hours}h exceeds available data, using full year")
+            steps_ahead = self.dtindex.size - 1
+        
+        self._t2 = min(self._t1 + steps_ahead - 1, self.dtindex.size - 1)
+        self.dtindex_custom = self.dtindex[self._t1:self._t2 + 1]
 
     def dated(
         self, data: Union[pd.Series, pd.DataFrame], activated=True

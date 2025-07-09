@@ -80,7 +80,9 @@ class CaseStudy(DrafBaseClass, DateTimeHandler):
         obj_vars: Tuple[str, str] = ("C_TOT_", "CE_TOT_"),
         mdl_language: str = "gp",
     ):
-        assert freq in ["15min", "30min", "60min"]
+        # Updated frequency validation to support minute-level resolution
+        valid_freqs = ["1min", "5min", "15min", "30min", "60min"]
+        assert freq in valid_freqs, f"Frequency must be one of {valid_freqs}, got {freq}"
 
         self.name = name
         self.doc = doc

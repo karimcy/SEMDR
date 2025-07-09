@@ -1,0 +1,38 @@
+{
+  "semdr_system": {
+    "name": "Hotel Energy Management System",
+    "version": "1.0",
+    "deployment_date": "2025-07-09T16:35:27.743347",
+    "components": 5,
+    "iot_topics": 7
+  },
+  "capabilities": {
+    "real_time_monitoring": true,
+    "demand_response": true,
+    "load_forecasting": true,
+    "battery_optimization": true,
+    "hvac_flexibility": true,
+    "pv_integration": true
+  },
+  "performance_metrics": {
+    "data_frequency": "1 minute",
+    "response_time": "< 30 seconds",
+    "flexibility_available": "60.0 kW",
+    "cost_savings_potential": "15-25%",
+    "emission_reduction": "20-30%"
+  },
+  "aws_infrastructure": {
+    "iot_core_topics": [
+      "devices/hotel_main_meter_001/electrical/measurement",
+      "devices/temp_lobby_001/environmental/measurement",
+      "devices/temp_rooms_002/environmental/measurement",
+      "devices/temp_kitchen_003/environmental/measurement",
+      "devices/occ_lobby_001/occupancy/measurement",
+      "devices/occ_rooms_002/occupancy/measurement",
+      "devices/battery_main_001/battery/measurement"
+    ],
+    "timestream_database": "semdr_iot_db",
+    "s3_bucket": "semdr-iot-data-bucket",
+    "lambda_processor": "iot-rds-handler"
+  }
+}
